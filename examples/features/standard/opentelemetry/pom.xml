@@ -58,6 +58,11 @@ under the License.
       </dependency>
       <dependency>
          <groupId>io.opentelemetry</groupId>
+         <artifactId>opentelemetry-sdk-common</artifactId>
+         <version>${opentelemetry.version}</version>
+      </dependency>
+      <dependency>
+         <groupId>io.opentelemetry</groupId>
          <artifactId>opentelemetry-api</artifactId>
          <version>${opentelemetry.version}</version>
       </dependency>
