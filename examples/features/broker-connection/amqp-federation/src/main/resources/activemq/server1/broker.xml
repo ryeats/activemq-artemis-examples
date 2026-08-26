@@ -90,17 +90,17 @@ under the License.
          </address-setting>
       </address-settings>
 
-      <addresses>
-         <address name="orders">
-            <multicast>
-            </multicast>
-         </address>
-         <address name="tracking">
-            <anycast>
-               <queue name="tracking" />
-            </anycast>
-         </address>
-      </addresses>
-
+      <diverts>
+         <divert name="orders-divert">
+            <address>orders</address>
+            <forwarding-address>orders.divert</forwarding-address>
+            <exclusive>false</exclusive>
+         </divert>
+         <divert name="tracking-divert">
+            <address>tracking</address>
+            <forwarding-address>tracking.divert</forwarding-address>
+            <exclusive>false</exclusive>
+         </divert>
+      </diverts>
    </core>
 </configuration>

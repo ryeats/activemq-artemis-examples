@@ -56,11 +56,17 @@ under the License.
                  on the local broker to itself. -->
             <federation>
                <local-address-policy name="address-federation-from-remote">
-                  <include address-match="orders" />
+                  <include address-match="#" />
                </local-address-policy>
+               <local-queue-policy name="queue-federation-from-remote">
+                  <include address-match="#" queue-match="#"/>
+               </local-queue-policy>
                <remote-queue-policy name="queue-federation-to-remote">
-                  <include address-match="#" queue-match="tracking" />
+                  <include address-match="#" queue-match="#"/>
                </remote-queue-policy>
+               <remote-address-policy name="address-federation-to-remote">
+                  <include address-match="#"/>
+               </remote-address-policy>
             </federation>
          </amqp-connection>
       </broker-connections>
@@ -107,17 +113,17 @@ under the License.
          </address-setting>
       </address-settings>
 
-      <addresses>
-         <address name="orders">
-            <multicast>
-            </multicast>
-         </address>
-         <address name="tracking">
-            <anycast>
-               <queue name="tracking" />
-            </anycast>
-         </address>
-      </addresses>
-
+      <diverts>
+         <divert name="orders-divert">
+            <address>orders</address>
+            <forwarding-address>orders.divert</forwarding-address>
+            <exclusive>false</exclusive>
+         </divert>
+         <divert name="tracking-divert">
+            <address>tracking</address>
+            <forwarding-address>tracking.divert</forwarding-address>
+            <exclusive>false</exclusive>
+         </divert>
+      </diverts>
    </core>
 </configuration>

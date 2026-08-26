@@ -18,6 +18,7 @@ package org.apache.activemq.artemis.jms.example;
 
 import javax.jms.Connection;
 import javax.jms.ConnectionFactory;
+import javax.jms.Destination;
 import javax.jms.MessageConsumer;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
@@ -25,7 +26,12 @@ import javax.jms.Session;
 import javax.jms.TextMessage;
 import javax.jms.Topic;
 
+import org.apache.activemq.artemis.jms.client.ActiveMQConnectionFactory;
 import org.apache.qpid.jms.JmsConnectionFactory;
+import org.fusesource.stomp.jms.StompJmsConnectionFactory;
+
+import java.security.SecureRandom;
+import java.util.Random;
 
 /**
  * This example is demonstrating how messages are federated between two brokers with the
@@ -35,27 +41,146 @@ import org.apache.qpid.jms.JmsConnectionFactory;
 public class BrokerFederationExample {
 
    public static void main(final String[] args) throws Exception {
-      final ConnectionFactory connectionFactoryServer0 = new JmsConnectionFactory("amqp://localhost:5660");
-      final ConnectionFactory connectionFactoryServer1 = new JmsConnectionFactory("amqp://localhost:5771");
+      long seed = new SecureRandom().nextLong();
+      System.err.println("SEED:"+seed);
+      Random random = new Random(seed);
+      final ConnectionFactory connectionFactoryServer0;
+      final ConnectionFactory connectionFactoryServer1;
 
+      switch (random.nextInt()%4)
+      {
+         case 0:
+            System.err.println("Openwire connecting to 5660");
+            connectionFactoryServer0 = new org.apache.activemq.ActiveMQConnectionFactory("tcp://localhost:5660");
+            break;
+         case 1:
+            System.err.println("Core connecting to 5660");
+            connectionFactoryServer0 = new ActiveMQConnectionFactory("tcp://localhost:5660");
+            break;
+         case 2:
+            System.err.println("AMQP connecting to 5660");
+            connectionFactoryServer0 = new JmsConnectionFactory("amqp://localhost:5660");
+            break;
+         case 4:
+            System.err.println("STOMP connecting to 5660");
+            StompJmsConnectionFactory stompJmsConnectionFactory = new StompJmsConnectionFactory();
+            stompJmsConnectionFactory.setBrokerURI("tcp://localhost:5660");
+            connectionFactoryServer0 = stompJmsConnectionFactory;
+            break;
+          default:
+             connectionFactoryServer0 = new JmsConnectionFactory("amqp://localhost:5660");
+             break;
+      }
+      switch (random.nextInt()%4)
+      {
+         case 0:
+            System.err.println("Openwire connecting to 5771");
+            connectionFactoryServer1 = new org.apache.activemq.ActiveMQConnectionFactory("tcp://localhost:5771");
+            break;
+         case 1:
+            System.err.println("Core connecting to 5771");
+            connectionFactoryServer1 = new ActiveMQConnectionFactory("tcp://localhost:5771");
+            break;
+         case 2:
+            System.err.println("AMQP connecting to 5771");
+            connectionFactoryServer1 = new JmsConnectionFactory("amqp://localhost:5771");
+            break;
+         case 4:
+            System.err.println("STOMP connecting to 5771");
+            StompJmsConnectionFactory stompJmsConnectionFactory = new StompJmsConnectionFactory();
+            stompJmsConnectionFactory.setBrokerURI("tcp://localhost:5771");
+            connectionFactoryServer1 = stompJmsConnectionFactory;
+            break;
+         default:
+            connectionFactoryServer1 = new JmsConnectionFactory("amqp://localhost:5771");
+            break;
+      }
       final Connection connectionOnServer0 = connectionFactoryServer0.createConnection();
       final Connection connectionOnServer1 = connectionFactoryServer1.createConnection();
 
       connectionOnServer0.start();
       connectionOnServer1.start();
 
-      final Session sessionOnServer0 = connectionOnServer0.createSession(Session.AUTO_ACKNOWLEDGE);
-      final Session sessionOnServer1 = connectionOnServer1.createSession(Session.AUTO_ACKNOWLEDGE);
+      final Session sessionOnServer0 = connectionOnServer0.createSession(false, Session.AUTO_ACKNOWLEDGE);
+      final Session sessionOnServer1 = connectionOnServer1.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-      final Topic ordersTopic = sessionOnServer0.createTopic("orders");
-      final Queue trackingQueue = sessionOnServer1.createQueue("tracking");
+      final Destination orders0;
+      final Destination orders1;
+      switch (random.nextInt()%6){
+         case 1:
+            System.err.println("creating order queues");
+            orders0 = sessionOnServer0.createQueue("orders");
+            orders1 = sessionOnServer1.createQueue("orders");
+            break;
+         case 2:
+            System.err.println("creating order.divert topics");
+            orders0 = sessionOnServer0.createTopic("orders");
+            orders1 = sessionOnServer1.createTopic("orders.divert");
+            break;
+         case 3:
+            System.err.println("creating order.divert queues");
+            orders0 = sessionOnServer0.createQueue("orders");
+            orders1 = sessionOnServer1.createQueue("orders.divert");
+            break;
+         case 4:
+            System.err.println("creating order.divert topics");
+            orders0 = sessionOnServer0.createTopic("orders.divert");
+            orders1 = sessionOnServer1.createTopic("orders");
+            break;
+         case 5:
+            System.err.println("creating order.divert queues");
+            orders0 = sessionOnServer0.createQueue("orders.divert");
+            orders1 = sessionOnServer1.createQueue("orders");
+            break;
+         default:
+            System.err.println("creating order topics");
+            orders0 = sessionOnServer0.createTopic("orders");
+            orders1 = sessionOnServer1.createTopic("orders");
+            break;
+      }
+
+      final Destination tracking0;
+      final Destination tracking1;
+      switch (random.nextInt()%6){
+         case 0:
+            System.err.println("creating tracking topics");
+            tracking0 = sessionOnServer0.createTopic("tracking");
+            tracking1 = sessionOnServer1.createTopic("tracking");
+            break;
+         case 2:
+            System.err.println("creating tracking.divert topics");
+            tracking0 = sessionOnServer0.createTopic("tracking");
+            tracking1 = sessionOnServer1.createTopic("tracking.divert");
+            break;
+         case 3:
+            System.err.println("creating tracking.divert queues");
+            tracking0 = sessionOnServer0.createQueue("tracking");
+            tracking1 = sessionOnServer1.createQueue("tracking.divert");
+            break;
+         case 4:
+            System.err.println("creating tracking.divert topics");
+            tracking0 = sessionOnServer0.createTopic("tracking.divert");
+            tracking1 = sessionOnServer1.createTopic("tracking");
+            break;
+         case 5:
+            System.err.println("creating tracking.divert queues");
+            tracking0 = sessionOnServer0.createQueue("tracking.divert");
+            tracking1 = sessionOnServer1.createQueue("tracking");
+            break;
+         default:
+            System.err.println("creating tracking queues");
+            tracking0 = sessionOnServer0.createQueue("tracking");
+            tracking1 = sessionOnServer1.createQueue("tracking");
+            break;
+      }
 
       // Create consumers which generate demand on tracked resources and create federation links
-      final MessageConsumer ordersConsumerOn0 = sessionOnServer0.createConsumer(ordersTopic);
-      final MessageConsumer trackingConsumerOn1 = sessionOnServer1.createConsumer(trackingQueue);
+      final MessageConsumer ordersConsumerOn0 = sessionOnServer0.createConsumer(orders0);
+      final MessageConsumer trackingConsumerOn1 = sessionOnServer1.createConsumer(tracking1);
+      Thread.sleep(2000);
 
       // Federation from server0 to server1 on the tracking queue
-      final MessageProducer trackingProducerOn0 = sessionOnServer0.createProducer(trackingQueue);
+      final MessageProducer trackingProducerOn0 = sessionOnServer0.createProducer(tracking0);
 
       final TextMessage trackingMessageSent = sessionOnServer0.createTextMessage("new-tracking-data");
 
@@ -66,7 +191,7 @@ public class BrokerFederationExample {
       System.out.println("Consumer on server 1 received tracking data from producer on server 0 " + trackingMessageReceived.getText());
 
       // Federation from server1 back to server0 on the orders address
-      final MessageProducer ordersProducerOn1 = sessionOnServer1.createProducer(ordersTopic);
+      final MessageProducer ordersProducerOn1 = sessionOnServer1.createProducer(orders1);
 
       final TextMessage orderMessageSent = sessionOnServer1.createTextMessage("new-order");
 
